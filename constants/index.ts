@@ -89,6 +89,96 @@ export const resumes: Resume[] = [
       },
     },
   },
+  {
+    id: "4",
+    companyName: "Tesla",
+    jobTitle: "Product Designer",
+    imagePath: "/images/resume_04.png",
+    resumePath: "/resumes/resume-4.pdf",
+    feedback: {
+      overallScore: 68,
+      ATS: {
+        score: 82,
+        tips: [],
+      },
+      toneAndStyle: {
+        score: 74,
+        tips: [],
+      },
+      content: {
+        score: 70,
+        tips: [],
+      },
+      structure: {
+        score: 65,
+        tips: [],
+      },
+      skills: {
+        score: 68,
+        tips: [],
+      },
+    },
+  },
+  {
+    id: "5",
+    companyName: "Amazon",
+    jobTitle: "Data Analyst",
+    imagePath: "/images/resume_05.png",
+    resumePath: "/resumes/resume-5.pdf",
+    feedback: {
+      overallScore: 80,
+      ATS: {
+        score: 88,
+        tips: [],
+      },
+      toneAndStyle: {
+        score: 82,
+        tips: [],
+      },
+      content: {
+        score: 79,
+        tips: [],
+      },
+      structure: {
+        score: 75,
+        tips: [],
+      },
+      skills: {
+        score: 82,
+        tips: [],
+      },
+    },
+  },
+  {
+    id: "6",
+    companyName: "Netflix",
+    jobTitle: "Marketing Manager",
+    imagePath: "/images/resume_06.png",
+    resumePath: "/resumes/resume-6.pdf",
+    feedback: {
+      overallScore: 72,
+      ATS: {
+        score: 80,
+        tips: [],
+      },
+      toneAndStyle: {
+        score: 76,
+        tips: [],
+      },
+      content: {
+        score: 74,
+        tips: [],
+      },
+      structure: {
+        score: 70,
+        tips: [],
+      },
+      skills: {
+        score: 72,
+        tips: [],
+      },
+    },
+  },
 ];
 
 export const AIResponseFormat = `
