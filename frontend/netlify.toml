@@ -1,0 +1,15 @@
+[build]
+  command = "npm run build"
+  publish = "build/client"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Prerendered routes (/, /login, /register) are served as real static
+# HTML files. Everything else (e.g. /upload, /previous, /resume/:id,
+# unknown paths) falls back to the SPA shell so the client-side router
+# can resolve it, including the 404 page for unknown routes.
+[[redirects]]
+  from = "/*"
+  to = "/__spa-fallback.html"
+  status = 200

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /upload
+Disallow: /previous
+Disallow: /resume/
+
+Sitemap: https://resumind.realitycodes.dev/sitemap.xml
