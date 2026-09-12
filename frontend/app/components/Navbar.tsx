@@ -1,12 +1,12 @@
 import { Link, useNavigate } from "react-router";
-import { useAuthStore } from "../../lib/authStore";
+import { usePuterStore } from "../../lib/puter";
 
 const Navbar = () => {
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { auth } = usePuterStore();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
+  const handleSignOut = async () => {
+    await auth.signOut();
     navigate("/");
   };
 
@@ -16,36 +16,25 @@ const Navbar = () => {
         <p className="reality-navbar__brand">RESUMIND</p>
       </Link>
       <div className="reality-navbar__links">
-        {isAuthenticated && (
+        {auth.isAuthenticated && (
           <Link to="/previous" className="reality-navbar__link">
             Previously Analyzed
           </Link>
         )}
-        {isAuthenticated ? (
+        {auth.isAuthenticated ? (
           <>
-            <span className="reality-navbar__user">Hi, {user?.name}</span>
+            <span className="reality-navbar__user">Hi, {auth.user?.username}</span>
             <Link to="/upload" className="reality-btn reality-btn--primary reality-btn--fit">
               Upload Resume
             </Link>
-            <button
-              className="reality-btn reality-btn--ghost"
-              onClick={handleLogout}
-            >
-              Log Out
+            <button className="reality-btn reality-btn--ghost" onClick={handleSignOut}>
+              Sign Out
             </button>
           </>
         ) : (
-          <>
-            <Link to="/login" className="reality-navbar__link">
-              Log In
-            </Link>
-            <Link
-              to="/register"
-              className="reality-btn reality-btn--primary reality-btn--fit"
-            >
-              Get Started
-            </Link>
-          </>
+          <Link to="/auth" className="reality-btn reality-btn--primary reality-btn--fit">
+            Sign In
+          </Link>
         )}
       </div>
     </nav>

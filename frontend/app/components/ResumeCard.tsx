@@ -1,6 +1,5 @@
 import { Link } from "react-router";
 import ScoreCircle from "~/components/ScoreCircle";
-import { resolveFileUrl } from "~/lib/api";
 
 const ResumeCard = ({
   resume: { id, companyName, jobTitle, feedback, imagePath },
@@ -22,7 +21,7 @@ const ResumeCard = ({
       </div>
       <div className="reality-gradient-border">
         <img
-          src={resolveFileUrl(imagePath)}
+          src={imagePath}
           alt={`Resume preview for ${companyName || "your application"}`}
           className="reality-resume-card__preview"
           loading="lazy"

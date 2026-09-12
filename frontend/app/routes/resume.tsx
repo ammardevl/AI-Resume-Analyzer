@@ -4,8 +4,7 @@ import Navbar from "../components/Navbar";
 import ATS from "../components/feedback/ATS";
 import Summary from "../components/feedback/Summary";
 import Details from "../components/feedback/Details";
-import { resumeApi, resolveFileUrl, ApiError } from "../../lib/api";
-import { useAuthStore } from "../../lib/authStore";
+import { usePuterStore } from "../../lib/puter";
 
 export const meta = () => [
   { title: "Resume Analysis — Resumind" },
@@ -15,35 +14,58 @@ export const meta = () => [
 
 const ResumeDetail = () => {
   const { id } = useParams();
-  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const { auth, kv, fs, isLoading: puterLoading } = usePuterStore();
   const navigate = useNavigate();
   const [resume, setResume] = useState<Resume | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      navigate(`/login?next=/resume/${id}`);
+    if (!puterLoading && !auth.isAuthenticated) {
+      navigate(`/auth?next=/resume/${id}`);
     }
-  }, [authLoading, isAuthenticated, id, navigate]);
+  }, [puterLoading, auth.isAuthenticated, id, navigate]);
 
   useEffect(() => {
-    if (!isAuthenticated || !id) return;
-    resumeApi
-      .get(id)
-      .then(({ resume }) => setResume(resume))
-      .catch((err) =>
-        setError(err instanceof ApiError ? err.message : "Failed to load resume details."),
-      )
-      .finally(() => setIsLoading(false));
-  }, [isAuthenticated, id]);
+    if (!auth.isAuthenticated || !id) return;
+
+    const loadResume = async () => {
+      const resumeValue = await kv.get(`resume:${id}`);
+      if (!resumeValue) {
+        setError("Resume data not found.");
+        setIsLoading(false);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(resumeValue) as Resume;
+        setResume(parsed);
+        if (parsed.imagePath) {
+          const blob = await fs.read(parsed.imagePath);
+          if (blob) setImageUrl(URL.createObjectURL(blob));
+        }
+      } catch {
+        setError("Failed to load resume details.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadResume();
+  }, [auth.isAuthenticated, id, kv, fs]);
+
+  useEffect(() => {
+    return () => {
+      if (imageUrl) URL.revokeObjectURL(imageUrl);
+    };
+  }, [imageUrl]);
 
   const jobDescription = useMemo(
     () => resume?.jobDescription?.trim() || "No job description provided.",
     [resume],
   );
 
-  if (!isAuthenticated) return null;
+  if (!auth.isAuthenticated) return null;
 
   return (
     <main className="reality-bg-main">
@@ -79,8 +101,8 @@ const ResumeDetail = () => {
                     <p style={{ color: "#4b5563" }}>{resume.jobTitle || "No job title provided"}</p>
                   </div>
                   <div className="reality-detail-preview">
-                    {resume.imagePath ? (
-                      <img src={resolveFileUrl(resume.imagePath)} alt="Resume preview" />
+                    {imageUrl ? (
+                      <img src={imageUrl} alt="Resume preview" />
                     ) : (
                       <div className="reality-detail-preview__empty">Resume preview unavailable.</div>
                     )}

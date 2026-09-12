@@ -13,7 +13,6 @@ interface Resume {
   imagePath: string;
   resumePath: string;
   feedback: Feedback;
-  createdAt?: string;
   /** true for the curated sample resumes shown on the homepage */
   isSample?: boolean;
 }

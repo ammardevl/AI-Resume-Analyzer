@@ -10,7 +10,7 @@ import {
 import type { Route } from "./+types/root";
 import "./styles/reality-theme.css";
 import { useEffect } from "react";
-import { useAuthStore } from "../lib/authStore";
+import { usePuterStore } from "../lib/puter";
 import Footer from "./components/Footer";
 
 export const links: Route.LinksFunction = () => [
@@ -43,7 +43,7 @@ export function meta() {
 }
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const init = useAuthStore((s) => s.init);
+  const init = usePuterStore((s) => s.init);
 
   useEffect(() => {
     init();
@@ -79,6 +79,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         />
       </head>
       <body>
+        {/* Puter provides free auth, storage and AI for this app —
+            no backend of our own required. */}
+        <script src="https://js.puter.com/v2/"></script>
         <div className="reality-app-shell">
           {children}
           <Footer />

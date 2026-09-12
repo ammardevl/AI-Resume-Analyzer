@@ -8,6 +8,6 @@ export default {
   // are fully crawlable by search engines.
   ssr: false,
   async prerender() {
-    return ["/", "/login", "/register"];
+    return ["/", "/auth"];
   },
 } satisfies Config;

@@ -6,13 +6,8 @@
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://resumind.realitycodes.dev/login</loc>
+    <loc>https://resumind.realitycodes.dev/auth</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
-  </url>
-  <url>
-    <loc>https://resumind.realitycodes.dev/register</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
   </url>
 </urlset>

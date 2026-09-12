@@ -3,8 +3,9 @@ import Navbar from "~/components/Navbar";
 import FileUploader from "~/components/FileUploader";
 import { useNavigate } from "react-router";
 import { convertPdfToImage } from "../../lib/pdf2img";
-import { resumeApi, ApiError } from "../../lib/api";
-import { useAuthStore } from "../../lib/authStore";
+import { generateUUID } from "../../lib/utils";
+import { prepareInstructions } from "../../constants";
+import { usePuterStore } from "../../lib/puter";
 
 export const meta = () => [
   { title: "Analyze Your Resume — Resumind" },
@@ -12,19 +13,18 @@ export const meta = () => [
 ];
 
 const Upload = () => {
-  const { isAuthenticated, isLoading: authLoading } = useAuthStore();
+  const { auth, isLoading, fs, ai, kv } = usePuterStore();
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [statusText, setStatusText] = useState("");
-  const [progress, setProgress] = useState(0);
   const [file, setFile] = useState<File | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      navigate("/login?next=/upload");
+    if (!isLoading && !auth.isAuthenticated) {
+      navigate("/auth?next=/upload");
     }
-  }, [authLoading, isAuthenticated, navigate]);
+  }, [isLoading, auth.isAuthenticated, navigate]);
 
   const handleAnalyze = async ({
     companyName,
@@ -39,33 +39,85 @@ const Upload = () => {
   }) => {
     setFormError(null);
     setIsProcessing(true);
-    setStatusText("Rendering a preview of your resume...");
-
-    const imageResult = await convertPdfToImage(file);
-    if (!imageResult.file) {
+    setStatusText("Uploading the file...");
+    const uploadedFile = await fs.upload([file]);
+    if (!uploadedFile) {
       setIsProcessing(false);
-      setFormError(imageResult.error || "Failed to render a preview of the PDF.");
-      return;
+      return setFormError("Failed to upload the file. Please try again.");
     }
 
-    const formData = new FormData();
-    formData.append("resume", file);
-    formData.append("image", imageResult.file);
-    formData.append("companyName", companyName);
-    formData.append("jobTitle", jobTitle);
-    formData.append("jobDescription", jobDescription);
+    setStatusText("Converting to image...");
+    const imageFile = await convertPdfToImage(file);
+    if (!imageFile.file) {
+      setIsProcessing(false);
+      return setFormError(imageFile.error || "Failed to convert PDF to image.");
+    }
 
-    setStatusText("Uploading and analyzing your resume...");
+    setStatusText("Uploading the image...");
+    const uploadedImage = await fs.upload([imageFile.file]);
+    if (!uploadedImage) {
+      setIsProcessing(false);
+      return setFormError("Failed to upload the preview image.");
+    }
+
+    setStatusText("Preparing data...");
+    const uuid = generateUUID();
+    const data: Resume = {
+      id: uuid,
+      resumePath: uploadedFile.path,
+      imagePath: uploadedImage.path,
+      companyName,
+      jobTitle,
+      jobDescription,
+      feedback: {
+        overallScore: 0,
+        ATS: { score: 0, tips: [] },
+        toneAndStyle: { score: 0, tips: [] },
+        content: { score: 0, tips: [] },
+        structure: { score: 0, tips: [] },
+        skills: { score: 0, tips: [] },
+      },
+    };
+
+    await kv.set(`resume:${uuid}`, JSON.stringify(data));
+
+    setStatusText("Analyzing...");
+    const feedback = await ai.feedback(
+      uploadedFile.path,
+      prepareInstructions({ jobTitle, jobDescription }),
+    );
+
+    if (!feedback) {
+      setIsProcessing(false);
+      return setFormError("Failed to analyze the resume. Please try again.");
+    }
+
+    const rawContent =
+      typeof feedback.message.content === "string"
+        ? feedback.message.content
+        : feedback.message.content[0].text;
+
+    let parsedFeedback: Feedback | null = null;
     try {
-      const { resume } = await resumeApi.upload(formData, setProgress);
-      setStatusText("Analysis complete. Redirecting...");
-      navigate(`/resume/${resume.id}`);
-    } catch (err) {
-      const message =
-        err instanceof ApiError ? err.message : "Something went wrong while analyzing your resume.";
-      setFormError(message);
-      setIsProcessing(false);
+      parsedFeedback = JSON.parse(rawContent);
+    } catch {
+      try {
+        const match = rawContent.match(/\{[\s\S]*\}/);
+        parsedFeedback = match ? JSON.parse(match[0]) : null;
+      } catch {
+        parsedFeedback = null;
+      }
     }
+
+    if (!parsedFeedback) {
+      setIsProcessing(false);
+      return setFormError("Unable to parse feedback from the AI response. Please try again.");
+    }
+
+    data.feedback = parsedFeedback;
+    await kv.set(`resume:${uuid}`, JSON.stringify(data));
+    setStatusText("Analysis complete. Redirecting...");
+    navigate(`/resume/${uuid}`);
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -83,7 +135,7 @@ const Upload = () => {
     handleAnalyze({ companyName, jobTitle, jobDescription, file });
   };
 
-  if (!isAuthenticated) return null;
+  if (!auth.isAuthenticated) return null;
 
   return (
     <main className="reality-bg-main">
@@ -94,9 +146,6 @@ const Upload = () => {
           {isProcessing ? (
             <>
               <h2 className="reality-h2">{statusText}</h2>
-              {progress > 0 && progress < 100 && (
-                <p className="reality-form-hint">Uploading: {progress}%</p>
-              )}
               <div className="reality-status-scan">
                 <img src="/images/resume-scan.gif" alt="Scanning resume" />
               </div>

@@ -1,70 +1,55 @@
-# Deploying Resumind v2.0
+# Deploying Resumind v2.0 (Cloudflare Pages, free)
 
-Two services, deployed independently. Do the **backend first** — the
-frontend needs its live URL.
+One service, no card required.
 
-## 1. Backend → Render
+## 1. Push to GitHub
 
-1. Push this repo to GitHub (or GitLab/Bitbucket).
-2. In Render: **New → Web Service**, connect the repo, and set:
-   - **Root Directory**: `backend`
-   - **Runtime**: Node
-   - **Build Command**: `npm install`
-   - **Start Command**: `npm start`
-   - **Instance Type**: the free tier is fine to start
-3. Add a **persistent disk** (Render → your service → Disks) so
-   uploaded resumes and the JSON database survive restarts/deploys —
-   e.g. mount path `/data`, 1GB is plenty to start.
-4. Add environment variables (Render → Environment):
+Commit the whole `resumind-v2` folder (just `/frontend` matters here)
+to a GitHub repo.
 
-   | Key | Value |
+## 2. Create the Cloudflare Pages project
+
+1. Go to the [Cloudflare dashboard](https://dash.cloudflare.com) →
+   **Workers & Pages** → **Create** → **Pages** → **Connect to Git**.
+2. Sign in with GitHub and pick your repo. No payment method is asked
+   for on the free plan.
+3. Set the build configuration:
+
+   | Field | Value |
    |---|---|
-   | `JWT_SECRET` | a long random string — generate with `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` |
-   | `FRONTEND_URL` | your Netlify URL, e.g. `https://resumind.netlify.app` (set this after step 2 below, then redeploy) |
-   | `ANTHROPIC_API_KEY` | your Claude API key, from [console.anthropic.com](https://console.anthropic.com) — optional; without it, resumes are still scored, just with the simpler offline fallback |
-   | `ANTHROPIC_MODEL` | `claude-sonnet-5` (default, can leave unset) |
-   | `UPLOAD_DIR` | `/data/uploads` (matches the disk mount path above) |
-   | `DATA_DIR` | `/data/db` |
+   | Framework preset | None (or "Vite" if offered) |
+   | Root directory | `frontend` |
+   | Build command | `npm run build` |
+   | Build output directory | `build/client` |
 
-5. Deploy. Confirm `https://<your-service>.onrender.com/health` returns
-   `{"status":"ok"}`.
+4. Click **Save and Deploy**. Cloudflare installs dependencies, runs
+   the build, and gives you a live URL like
+   `https://ai-resume-analyzer.pages.dev` within a minute or two.
 
-   Alternatively, the included `backend/Dockerfile` works with Render's
-   Docker runtime, or any other Docker host (Fly.io, Railway, a VPS,
-   etc.) if you'd rather not use Render.
+That's it — there's no backend to deploy, no environment variables to
+set, no database to provision. The `_redirects` file already in
+`frontend/public/` (Cloudflare Pages supports the same format Netlify
+does) handles routing so `/upload`, `/previous`, `/resume/:id`, and
+unknown paths all resolve correctly through the client-side router.
 
-## 2. Frontend → Netlify
+## 3. Every future update
 
-1. In Netlify: **Add new site → Import an existing project**, connect
-   the same repo, and set:
-   - **Base directory**: `frontend`
-   - **Build command**: `npm run build`
-   - **Publish directory**: `frontend/build/client`
+Just `git push` — Cloudflare Pages watches the branch and redeploys
+automatically. No redeploy step to remember.
 
-   (`netlify.toml` inside `/frontend` already encodes these, so Netlify
-   should pick them up automatically once the base directory is set.)
-2. Add an environment variable: `VITE_API_BASE_URL` = your Render URL
-   from step 1 (e.g. `https://resumind-backend.onrender.com`).
-3. Deploy. Netlify will build, prerender `/`, `/login`, `/register` to
-   static HTML, and serve everything else through the SPA fallback
-   (already configured via `_redirects`).
-4. Go back to Render and set `FRONTEND_URL` to your live Netlify URL,
-   then redeploy the backend so CORS allows requests from it.
+## 4. Custom domain (optional, still free)
 
-## 3. Custom domain / SEO follow-ups
+Cloudflare Pages → your project → **Custom domains** → add a domain
+you own (or a free Cloudflare-provided one). If you do this, update
+the placeholder URLs in `frontend/app/root.tsx`,
+`frontend/public/robots.txt`, and `frontend/public/sitemap.xml`
+(currently `resumind.realitycodes.dev`) to match.
 
-- Update the `og:` URLs, `<link rel="canonical">`, `robots.txt`, and
-  `sitemap.xml` in `/frontend` with your real domain once you have one
-  (they currently point at a placeholder `resumind.realitycodes.dev`).
-- Submit `sitemap.xml` to Google Search Console after going live.
+## About the "backend"
 
-## Local smoke test before deploying
-
-```bash
-cd backend && npm install && npm run dev &
-cd frontend && npm install && npm run build && npx serve build/client
-```
-
-Then confirm register → login → upload a resume → see it under
-"Previously Analyzed" all work against your local backend before
-pointing Netlify at the real one.
+There isn't one to deploy — [Puter](https://puter.com) is providing
+free hosted auth, file storage, and AI on your users' behalf, loaded
+directly in the browser via its script tag in `app/root.tsx`. If you
+ever outgrow that (e.g. you want your own database, your own AI
+provider/key, or server-side control), that's a bigger follow-up
+project — not something needed to get this live today.

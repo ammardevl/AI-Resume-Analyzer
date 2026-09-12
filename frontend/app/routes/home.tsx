@@ -3,7 +3,7 @@ import Navbar from "../components/Navbar";
 import { resumes } from "../../constants";
 import ResumeCard from "~/components/ResumeCard";
 import { Link } from "react-router";
-import { useAuthStore } from "../../lib/authStore";
+import { usePuterStore } from "../../lib/puter";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -17,7 +17,8 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function Home() {
-  const { isAuthenticated } = useAuthStore();
+  const { auth } = usePuterStore();
+  const isAuthenticated = auth.isAuthenticated;
 
   return (
     <main className="reality-bg-main">
@@ -30,7 +31,7 @@ export default function Home() {
             AI-powered ATS score.
           </h2>
           <Link
-            to={isAuthenticated ? "/upload" : "/register"}
+            to={isAuthenticated ? "/upload" : "/auth"}
             className="reality-btn reality-btn--primary reality-btn--fit"
           >
             {isAuthenticated ? "Analyze a Resume" : "Get Started — It's Free"}
